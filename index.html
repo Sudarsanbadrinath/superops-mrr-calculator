@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SuperOps MRR Calculator</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 30px auto; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 15px; padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    .result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>SuperOps MRR Calculator</h2>
+
+  <label>Product</label>
+  <select id="product">
+    <option value="IT">IT</option>
+    <option value="MSP">MSP</option>
+  </select>
+
+  <label>Billing Frequency</label>
+  <select id="billing">
+    <option value="Monthly">Monthly</option>
+    <option value="Annual">Annual</option>
+  </select>
+
+  <label>Plan (for MSP only)</label>
+  <select id="plan">
+    <option value="Standard PSA">Standard PSA</option>
+    <option value="Standard RMM">Standard RMM</option>
+    <option value="Pro Unified Basic">Pro Unified Basic</option>
+    <option value="Super Unified Advanced">Super Unified Advanced</option>
+  </select>
+
+  <label>Workstation Count</label>
+  <input type="number" id="workstations" value="0">
+
+  <label>Network Device Count</label>
+  <input type="number" id="networks" value="0">
+
+  <button onclick="calculateMRR()">Calculate MRR</button>
+  <div class="result" id="result"></div>
+
+  <script>
+    const itPricing = {
+      "Monthly": [[100, 1.50], [500, 1.40], [1000, 1.30], [Infinity, 1.20]],
+      "Annual": [[100, 1.30], [500, 1.20], [1000, 1.10], [Infinity, 1.00]]
+    };
+
+    const mspPricing = {
+      "Monthly": {
+        "Standard PSA": 89,
+        "Standard RMM": 109,
+        "Pro Unified Basic": 149,
+        "Super Unified Advanced": 179
+      },
+      "Annual": {
+        "Standard PSA": 79,
+        "Standard RMM": 99,
+        "Pro Unified Basic": 129,
+        "Super Unified Advanced": 159
+      }
+    };
+
+    function calculateMRR() {
+      const product = document.getElementById("product").value;
+      const billing = document.getElementById("billing").value;
+      const plan = document.getElementById("plan").value;
+      const workstations = parseInt(document.getElementById("workstations").value);
+      const networks = parseInt(document.getElementById("networks").value);
+
+      let total = 0;
+
+      if (product === "IT") {
+        let remaining = workstations;
+        for (const [limit, price] of itPricing[billing]) {
+          if (remaining > 0) {
+            const count = Math.min(remaining, limit);
+            total += count * price;
+            remaining -= count;
+          }
+        }
+      } else if (product === "MSP") {
+        const base = mspPricing[billing][plan];
+        const extraWorkstations = Math.max(0, workstations - 150);
+        const assetPacks = Math.ceil(extraWorkstations / 150);
+        const assetCost = assetPacks * 75;
+
+        const networkBuckets = Math.ceil(networks / 20);
+        const networkCost = networkBuckets * 20 * 1;
+
+        total = base + assetCost + networkCost;
+      }
+
+      document.getElementById("result").innerText = `Estimated MRR: $${total.toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
