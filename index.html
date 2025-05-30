@@ -40,17 +40,23 @@
   <label>Network Device Count</label>
   <input type="number" id="networks" value="0">
 
-  <label>Discount on Base Plan (%)</label>
-  <input type="number" id="baseDiscount" value="0">
-
-  <label>Discount on Asset Packs (%)</label>
-  <input type="number" id="assetDiscount" value="0">
-
-  <label>Discount on Network Devices (%)</label>
-  <input type="number" id="networkDiscount" value="0">
-
   <button onclick="calculateMRR()">Calculate MRR</button>
-  <div class="result" id="result"></div>
+
+  <div class="result" id="mrrResult"></div>
+
+  <div id="nextInputs" style="display:none">
+    <label>Discount % on Base Plan</label>
+    <input type="number" id="baseDiscount" value="0">
+
+    <label>Discount % on Asset Packs</label>
+    <input type="number" id="assetDiscount" value="0">
+
+    <label>Discount % on Network Devices</label>
+    <input type="number" id="networkDiscount" value="0">
+
+    <button onclick="applyDiscounts()">Apply Discounts</button>
+    <div class="result" id="finalResult"></div>
+  </div>
 
   <script>
     const itPricing = {
@@ -73,6 +79,8 @@
       }
     };
 
+    let base = 0, assetPacks = 0, assetCost = 0, networkBuckets = 0, networkCost = 0, total = 0;
+
     function calculateMRR() {
       const product = document.getElementById("product").value;
       const billing = document.getElementById("billing").value;
@@ -80,11 +88,11 @@
       const workstations = parseInt(document.getElementById("workstations").value);
       const networks = parseInt(document.getElementById("networks").value);
 
-      const baseDiscount = parseFloat(document.getElementById("baseDiscount").value) || 0;
-      const assetDiscount = parseFloat(document.getElementById("assetDiscount").value) || 0;
-      const networkDiscount = parseFloat(document.getElementById("networkDiscount").value) || 0;
-
-      let total = 0;
+      total = 0;
+      assetPacks = 0;
+      assetCost = 0;
+      networkBuckets = 0;
+      networkCost = 0;
 
       if (product === "IT") {
         let remaining = workstations;
@@ -95,24 +103,37 @@
             remaining -= count;
           }
         }
+        document.getElementById("mrrResult").innerText = `Estimated MRR (IT): $${total.toFixed(2)}`;
       } else if (product === "MSP") {
-        let base = mspPricing[billing][plan];
-        base -= (base * baseDiscount / 100);
-        base = Math.max(base, 0);
-
+        base = mspPricing[billing][plan];
         const extraWorkstations = Math.max(0, workstations - 150);
-        const assetPacks = Math.ceil(extraWorkstations / 150);
-        let assetCostPerPack = 75 - (75 * assetDiscount / 100);
-        const assetCost = assetCostPerPack * assetPacks;
+        assetPacks = Math.ceil(extraWorkstations / 150);
+        assetCost = assetPacks * 75;
 
-        const networkBuckets = Math.ceil(networks / 20);
-        let networkCostPerBucket = 20 - (20 * networkDiscount / 100);
-        const networkCost = networkCostPerBucket * networkBuckets;
+        networkBuckets = Math.ceil(networks / 20);
+        networkCost = networkBuckets * 20 * 1;
 
         total = base + assetCost + networkCost;
-      }
 
-      document.getElementById("result").innerText = `Estimated MRR: $${total.toFixed(2)}`;
+        document.getElementById("mrrResult").innerHTML = `Estimated MRR (MSP): $${total.toFixed(2)}<br>` +
+          `Asset Packs Needed: ${assetPacks} ($${assetCost.toFixed(2)})<br>` +
+          `Network Buckets Needed: ${networkBuckets} ($${networkCost.toFixed(2)})`;
+      }
+      document.getElementById("nextInputs").style.display = 'block';
+    }
+
+    function applyDiscounts() {
+      const baseDiscount = parseFloat(document.getElementById("baseDiscount").value) || 0;
+      const assetDiscount = parseFloat(document.getElementById("assetDiscount").value) || 0;
+      const networkDiscount = parseFloat(document.getElementById("networkDiscount").value) || 0;
+
+      const discountedBase = base * (1 - baseDiscount / 100);
+      const discountedAssets = assetCost * (1 - assetDiscount / 100);
+      const discountedNetworks = networkCost * (1 - networkDiscount / 100);
+
+      const finalTotal = discountedBase + discountedAssets + discountedNetworks;
+
+      document.getElementById("finalResult").innerText = `Final MRR after Discounts: $${finalTotal.toFixed(2)}`;
     }
   </script>
 </body>
